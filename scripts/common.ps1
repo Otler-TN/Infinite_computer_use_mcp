@@ -57,7 +57,9 @@ function Get-NgrokSetupStatus {
         $options = @(Get-NgrokConfigArguments $RepoRoot)
         $output = (& $ngrok config check @options 2>&1 | Out-String)
         $result.valid = $LASTEXITCODE -eq 0
-        if ($result.valid -and $output -match 'Valid configuration file at\s+([^\r\n]+)') {
+        $privateConfig = Join-Path $RepoRoot '.run\private\ngrok.yml'
+        $configPath = if (Test-Path -LiteralPath $privateConfig) { $privateConfig } else { $null }
+        if (-not $configPath -and $result.valid -and $output -match 'Valid configuration file at\s+([^\r\n]+)') {
             $configPath = $Matches[1].Trim()
             # Store installations virtualize LOCALAPPDATA while reporting its original path.
             if (-not (Test-Path -LiteralPath $configPath) -and $configPath.StartsWith($env:LOCALAPPDATA, [StringComparison]::OrdinalIgnoreCase)) {
@@ -67,6 +69,8 @@ function Get-NgrokSetupStatus {
                     $configPath = Join-Path $env:LOCALAPPDATA "Packages\$($package.PackageFamilyName)\LocalCache\Local\$suffix"
                 }
             }
+        }
+        if ($configPath -and (Test-Path -LiteralPath $configPath)) {
             $config = Get-Content -Raw -LiteralPath $configPath
             $result.configured = [bool]($config -match '(?m)^\s*authtoken:\s*[\x22\x27]?[A-Za-z0-9_-]{16,}')
         }

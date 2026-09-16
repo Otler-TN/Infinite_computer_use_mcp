@@ -115,7 +115,7 @@ try {
     }
     if ($ngrok) {
         $upstream = "http://$HostName`:$endpointPort"
-        $tunnelProcess = Start-Component 'ngrok' $ngrok (@('http', $upstream, "--host-header=$HostName`:$endpointPort", '--log=stdout', '--inspect=false') + $ngrokConfigArguments)
+        $tunnelProcess = Start-Component 'ngrok' $ngrok (@('http', $upstream, "--host-header=$HostName`:$endpointPort", '--log=stdout') + $ngrokConfigArguments)
         Record-Listener (Wait-ManagedPort 4040 $tunnelProcess) 'ngrok-listener'
         $deadline = [DateTime]::UtcNow.AddSeconds(45)
         $publicUrl = $null
@@ -124,7 +124,11 @@ try {
             if ($tunnelProcess.HasExited) { throw 'ngrok exited; see ngrok.error.log.' }
             try {
                 $response = Invoke-RestMethod 'http://127.0.0.1:4040/api/tunnels' -TimeoutSec 3
-                $tunnel = $response.tunnels | Where-Object { $_.proto -eq 'https' -and $_.config.addr.TrimEnd('/') -eq $upstream } | Select-Object -First 1
+                $httpsTunnels = @($response.tunnels | Where-Object { $_.proto -eq 'https' })
+                $tunnel = $httpsTunnels | Where-Object { $_.config.addr.TrimEnd('/') -eq $upstream } | Select-Object -First 1
+                # ngrok versions differ slightly in how they normalize config.addr. This
+                # process owns port 4040, so a single HTTPS tunnel is unambiguous.
+                if (-not $tunnel -and $httpsTunnels.Count -eq 1) { $tunnel = $httpsTunnels[0] }
                 if ($tunnel) { $publicUrl = $tunnel.public_url; break }
             } catch { Write-Verbose $_ }
             Start-Sleep -Milliseconds 500

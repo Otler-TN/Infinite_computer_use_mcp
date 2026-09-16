@@ -75,6 +75,41 @@ def test_status_requires_live_owned_processes_and_listener(tmp_path, monkeypatch
     assert manager.snapshot()["url"] is None
 
 
+def test_status_uses_listener_health_even_if_launcher_exits(tmp_path, monkeypatch):
+    manager = Manager(tmp_path)
+    write_state(
+        manager,
+        {
+            "status": "running",
+            "url": "https://example.test/mcp",
+            "proxyPort": 8011,
+            "processes": [
+                {"pid": 10, "role": "server"},
+                {"pid": 11, "role": "proxy-listener"},
+                {"pid": 12, "role": "ngrok"},
+                {"pid": 13, "role": "ngrok-listener"},
+            ],
+        },
+    )
+
+    def match(record):
+        return record.get("role") not in {"server", "ngrok"}
+
+    monkeypatch.setattr(manager_backend, "process_matches", match)
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(manager_backend.socket, "create_connection", lambda *_a, **_k: Connection())
+    snapshot = manager.snapshot()
+    assert snapshot["status"] == "running"
+    assert snapshot["url"] == "https://example.test/mcp"
+
+
 @pytest.mark.parametrize(
     "action,settings,existing_admin,elevates",
     [
@@ -192,6 +227,27 @@ def test_ui_disables_duplicate_actions_and_closing_preserves_server():
         manager.finish.set()
         ui.close()
     assert manager.alive and manager.calls == ["verify"]
+
+
+def test_ui_offers_one_click_restart_for_attention_state():
+    root = tk.Tk()
+    root.withdraw()
+    manager = FakeManager()
+    ui = ManagerWindow(root, manager, start_polling=False)
+    try:
+        ui.current = {
+            "status": "needs_attention",
+            "has_processes": True,
+            "url": None,
+            "remote": True,
+            "elevated": True,
+        }
+        ui.render_status()
+        assert ui.start_button.cget("text") == "Restart MCP"
+        assert not ui.start_button.instate(["disabled"])
+    finally:
+        manager.finish.set()
+        ui.close()
 
 
 def test_manager_is_standard_library_only():

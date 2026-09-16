@@ -171,14 +171,39 @@ class Manager:
 
     def snapshot(self) -> dict:
         state = read_json(self.state_path)
-        records = state.get("processes", [])
-        identities = [process_matches(r) for r in records if isinstance(r, dict)]
-        present = any(match is not False for match in identities)
-        running = (
-            state.get("status") == "running"
-            and bool(identities)
-            and all(match is not False for match in identities)
-        )
+        records = [record for record in state.get("processes", []) if isinstance(record, dict)]
+        checked = [(record, process_matches(record)) for record in records]
+        present = any(match is not False for _record, match in checked)
+
+        # A component launcher may legitimately exit after handing the listening socket to a
+        # child process (this is especially common with packaged ngrok builds).  The old
+        # health check required every launcher PID to remain alive forever, which could turn
+        # a healthy remote instance into "Needs attention" and hide its working URL.
+        listener_records = [
+            (record, match)
+            for record, match in checked
+            if str(record.get("role", "")).endswith("-listener")
+        ]
+        if listener_records:
+            endpoint_role = "proxy-listener" if state.get("proxyPort") else "server-listener"
+            required_roles = {endpoint_role}
+            remote = str(state.get("url", "")).startswith("https://")
+            if remote:
+                required_roles.add("ngrok-listener")
+            listeners_ready = all(
+                any(
+                    record.get("role") == role and match is not False
+                    for record, match in listener_records
+                )
+                for role in required_roles
+            )
+        else:
+            # Backward compatibility for state files created by older releases.
+            listeners_ready = bool(checked) and all(
+                match is not False for _record, match in checked
+            )
+
+        running = state.get("status") == "running" and listeners_ready
         if running:
             try:
                 with socket.create_connection(

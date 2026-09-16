@@ -121,7 +121,7 @@ class ManagerWindow:
             actions,
             text="Start MCP",
             style="Primary.TButton",
-            command=lambda: self.run_action("start"),
+            command=self.start_or_restart,
             state="disabled",
         )
         self.start_button.grid(row=0, column=0, sticky="ew", padx=(0, 6))
@@ -225,9 +225,12 @@ class ManagerWindow:
             "needs_attention": ("Needs attention", AMBER),
         }.get(status, ("Needs attention", AMBER))
         if self.busy:
-            label = {"start": "Starting…", "stop": "Stopping…", "verify": "Checking connection…"}[
-                self.busy
-            ]
+            label = {
+                "start": "Starting…",
+                "restart": "Restarting…",
+                "stop": "Stopping…",
+                "verify": "Checking connection…",
+            }[self.busy]
             color = BLUE
         self.status_label.configure(text=label)
         self.dot.itemconfigure(self.dot_id, fill=color)
@@ -243,14 +246,23 @@ class ManagerWindow:
             else "Only apps on this computer can connect."
         )
         self.start_button.configure(
-            state="normal" if not self.busy and status == "stopped" else "disabled"
+            text="Restart MCP" if status == "needs_attention" else "Start MCP",
+            state="normal"
+            if not self.busy and status in {"stopped", "needs_attention"}
+            else "disabled",
         )
         self.stop_button.configure(
             state="normal" if not self.busy and state.get("has_processes") else "disabled"
         )
-        self.copy_button.configure(state="normal" if running and not self.busy else "disabled")
-        self.check_button.configure(state="normal" if running and not self.busy else "disabled")
+        can_connect = running and bool(state.get("url")) and not self.busy
+        self.copy_button.configure(state="normal" if can_connect else "disabled")
+        self.check_button.configure(state="normal" if can_connect else "disabled")
         self.settings_button.configure(state="disabled" if self.busy else "normal")
+
+
+    def start_or_restart(self):
+        action = "restart" if self.current.get("status") == "needs_attention" else "start"
+        self.run_action(action)
 
     def run_action(self, action: str):
         if self.busy or self.closed.is_set():
@@ -261,6 +273,7 @@ class ManagerWindow:
         self.message.configure(
             text={
                 "start": "Starting MCP. Approve the Windows prompt if it appears.",
+                "restart": "Repairing the connection and restarting MCP. Approve the Windows prompt if it appears.",
                 "stop": "Stopping MCP. Approve the Windows prompt if it appears.",
                 "verify": "Testing the connection and tools. This may take a minute.",
             }[action],
@@ -273,7 +286,14 @@ class ManagerWindow:
 
         def work():
             try:
-                result = self.manager.execute(action, settings)
+                if action == "restart":
+                    stopped = self.manager.execute("stop", settings)
+                    if stopped.get("status") != "complete":
+                        result = stopped
+                    else:
+                        result = self.manager.execute("start", settings)
+                else:
+                    result = self.manager.execute(action, settings)
             except ElevationCancelled as error:
                 result = {"status": "cancelled", "message": str(error)}
             except Exception as error:

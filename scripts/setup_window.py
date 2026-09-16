@@ -19,6 +19,7 @@ class SetupWindow:
         self.busy = False
         self.closed = False
         self.report = None
+        self.start_after_token = False
         self.window = tk.Toplevel(parent.window)
         self.window.title("Set up Infinite Computer Use MCP")
         self.window.configure(background="#f3f5f9")
@@ -186,6 +187,7 @@ class SetupWindow:
     def save_token(self):
         token = self.token.get()
         self.token.set("")
+        self.start_after_token = True
         settings = self.persist()
 
         def operation():
@@ -210,9 +212,12 @@ class SetupWindow:
                     control.configure(state="normal")
                 self.done_button.configure(state="normal")
                 if kind == "error":
+                    self.start_after_token = False
                     self.status.configure(text=value, foreground="#9a620c")
                 elif isinstance(value, dict):
                     self.report = value
+                    start_after_token = self.start_after_token
+                    self.start_after_token = False
                     self.dependencies.configure(
                         text=f"MCP runtime: {'Ready' if value['runtime'] else 'Install / repair needed'}  ·  ngrok: {'Not needed' if not self.remote.get() else ('Installed' if value['ngrok']['installed'] else 'Missing')}"
                     )
@@ -231,11 +236,28 @@ class SetupWindow:
                     self.status.configure(
                         text=text, foreground="#16815d" if value["ready"] else "#9a620c"
                     )
+                    if value["ready"] and start_after_token:
+                        action = "restart" if value["running"] else "start"
+                        self.status.configure(
+                            text=(
+                                "Authtoken saved. Restarting MCP to create a fresh public link…"
+                                if action == "restart"
+                                else "Authtoken saved. Starting MCP to create your public link…"
+                            ),
+                            foreground="#16815d",
+                        )
+                        self.window.after(250, lambda selected=action: self.finish_and_start(selected))
                 else:
                     self.status.configure(text="Desktop shortcut created.", foreground="#16815d")
         except queue.Empty:
             pass
         self.after_id = self.window.after(100, self.drain)
+
+    def finish_and_start(self, action):
+        if self.closed or self.busy:
+            return
+        self.close()
+        self.parent.run_action(action)
 
     def open_log(self):
         if self.service.log_path.exists():
