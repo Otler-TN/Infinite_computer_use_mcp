@@ -19,7 +19,7 @@ class SetupWindow:
         self.busy = False
         self.closed = False
         self.report = None
-        self.start_after_token = False
+        self.auto_start_pending = False
         self.window = tk.Toplevel(parent.window)
         self.window.title("Set up Infinite Computer Use MCP")
         self.window.configure(background="#f3f5f9")
@@ -187,7 +187,7 @@ class SetupWindow:
     def save_token(self):
         token = self.token.get()
         self.token.set("")
-        self.start_after_token = True
+        self.auto_start_pending = True
         settings = self.persist()
 
         def operation():
@@ -212,12 +212,12 @@ class SetupWindow:
                     control.configure(state="normal")
                 self.done_button.configure(state="normal")
                 if kind == "error":
-                    self.start_after_token = False
+                    self.auto_start_pending = False
                     self.status.configure(text=value, foreground="#9a620c")
                 elif isinstance(value, dict):
                     self.report = value
-                    start_after_token = self.start_after_token
-                    self.start_after_token = False
+                    auto_start_pending = self.auto_start_pending
+                    self.auto_start_pending = False
                     self.dependencies.configure(
                         text=f"MCP runtime: {'Ready' if value['runtime'] else 'Install / repair needed'}  ·  ngrok: {'Not needed' if not self.remote.get() else ('Installed' if value['ngrok']['installed'] else 'Missing')}"
                     )
@@ -236,7 +236,7 @@ class SetupWindow:
                     self.status.configure(
                         text=text, foreground="#16815d" if value["ready"] else "#9a620c"
                     )
-                    if value["ready"] and start_after_token:
+                    if value["ready"] and auto_start_pending:
                         action = "restart" if value["running"] else "start"
                         self.status.configure(
                             text=(
