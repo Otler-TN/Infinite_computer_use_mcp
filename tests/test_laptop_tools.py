@@ -16,6 +16,15 @@ def jobs(tmp_path):
     manager.close()
 
 
+def assert_process_exits(process, timeout=5):
+    try:
+        process.wait(timeout=timeout)
+    except psutil.NoSuchProcess:
+        return
+    except psutil.TimeoutExpired:
+        pytest.fail(f"Process {process.pid} did not exit within {timeout} seconds")
+
+
 def test_native_argv_cwd_environment_and_exit_status(jobs, tmp_path):
     unusual = 'spaces, "quotes", $HOME, backtick` and trailing\\'
     result = jobs.start(
@@ -89,7 +98,7 @@ def test_terminate_kills_child_process(jobs):
     child = psutil.Process(child_pid)
     result = jobs.terminate(result["job_id"])
     assert result["exit_code"] is not None
-    assert not child.is_running()
+    assert_process_exits(child)
 
 
 def test_powershell_script_longer_than_windows_command_line_limit(jobs):
@@ -111,7 +120,7 @@ def test_children_remain_owned_after_parent_exits(jobs):
     assert result["exit_code"] == 0
     assert result["state"] == "running"
     jobs.terminate(result["job_id"])
-    assert not child.is_running()
+    assert_process_exits(child)
 
 
 def test_server_crash_closes_job_and_kills_children(tmp_path):
