@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible problem with setup, runtime behavior, tools, or the manager.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include ngrok tokens, private tunnel URLs, credentials, private file contents, or machine-specific secrets.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection mode
+      options:
+        - Local stdio
+        - Local Streamable HTTP
+        - Remote through ngrok
+        - Not sure / setup issue
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reproducible sequence.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or verification output
+      description: Remove credentials, tunnel URLs, usernames, local paths, and private data before pasting.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, tokens, private URLs, and private file contents from this report.
+          required: true

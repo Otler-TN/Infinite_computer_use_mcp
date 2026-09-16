@@ -1,0 +1,24 @@
+name: Feature request
+description: Propose a focused improvement to the launcher, tools, verification, or documentation.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the desired user-visible behavior or interface.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and compatibility considerations
+      description: Note any effect on privilege, remote exposure, credentials, Windows versions, or MCP clients.

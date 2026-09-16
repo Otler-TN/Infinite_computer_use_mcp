@@ -1,0 +1,34 @@
+# Runtime and local state
+.run/
+.venv/
+.env
+.env.*
+ngrok.yml
+*.log
+*.error.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Credentials and private keys
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build / packaging output
+build/
+dist/
+*.egg-info/

@@ -1,0 +1,44 @@
+name: Infinite Computer Use MCP - Windows checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install the locked runtime
+        shell: powershell
+        run: ./scripts/setup.ps1
+
+      - name: Run local-only preflight
+        shell: powershell
+        run: ./scripts/preflight.ps1 -LocalOnly
+
+      - name: Lint
+        run: ./.venv/Scripts/python.exe -m ruff check scripts tests launcher.pyw
+
+      - name: Test
+        run: ./.venv/Scripts/python.exe -m pytest -q
+
+      - name: Build source release
+        run: ./.venv/Scripts/python.exe ./scripts/build-release.py
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Infinite_computer_use_mcp
+          path: |
+            .run/releases/Infinite_computer_use_mcp.zip
+            .run/releases/Infinite_computer_use_mcp.zip.sha256
+          if-no-files-found: error
