@@ -13,7 +13,7 @@ Here are a few real examples of what you can ask it to do:
 - **See what is on your computer:** list files on the Desktop, inspect folders, check processes, drives, displays, or system capabilities.
 - **Bring a remote file back to you:** locate a file on the PC, export it through the MCP server, and return a download link in the conversation.
 - **Move private data without reading it:** copy or upload a ZIP as opaque bytes without opening or extracting it, then verify the exact copy with SHA-256.
-- **Use normal Windows applications:** open apps, click, type, scroll, use keyboard shortcuts, work with the clipboard, and interact with visible UI elements. The Paint example below was driven through computer-use actions.
+- **Use normal Windows applications:** open apps, click, type, scroll, use keyboard shortcuts, work with the clipboard, and interact with visible UI elements.
 - **Run serious automation:** start PowerShell or command jobs, keep them alive across client reconnects, stream stdout/stderr later, send stdin, and stop managed process groups when needed.
 - **Build multi-step workflows:** combine GUI actions, filesystem operations, scripts, registry/process tools, screenshots, file transfer, and application control into higher-level tasks of your own.
 
@@ -23,31 +23,6 @@ If you build something interesting with it, improve it, or discover a new workfl
 
 > [!CAUTION]
 > This project can expose broad control of the Windows account that runs it. Remote mode intentionally uses an **unauthenticated MCP endpoint** behind ngrok. Anyone who can reach that endpoint can invoke the available tools with the server process's Windows privileges. Use remote mode only when you understand and accept that exposure, keep tunnel URLs private, and stop the server when it is not needed. See [Security](docs/security.md).
-
-## See it in action
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/images/list-desktop-files.png" alt="ChatGPT listing files on a Windows desktop through MCP"><br>
-      <sub><b>Inspect the PC remotely.</b> Ask for a Desktop listing and get the result directly in the conversation.</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/images/upload-desktop-file.png" alt="ChatGPT uploading a desktop text file and returning it as a download"><br>
-      <sub><b>Bring files back to the conversation.</b> Locate a Desktop file, export it, and receive a downloadable copy.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/images/upload-zip-without-opening.png" alt="ChatGPT uploading a ZIP without opening or extracting it"><br>
-      <sub><b>Transfer without inspecting contents.</b> A ZIP can be copied as opaque data and verified by hash without opening or extracting it.</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/images/paint-gui-automation.png" alt="Microsoft Paint controlled through Windows computer-use actions"><br>
-      <sub><b>Operate native Windows apps.</b> Mouse, keyboard, screenshots, shortcuts, and UI interaction can be composed into larger workflows.</sub>
-    </td>
-  </tr>
-</table>
 
 ## What is under the hood
 
